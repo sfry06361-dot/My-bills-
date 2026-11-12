@@ -54,10 +54,27 @@ class BillViewModel(
     private val _filterStatus = MutableStateFlow(BillFilter.ALL)
     val filterStatus: StateFlow<BillFilter> = _filterStatus.asStateFlow()
 
-    val bills: StateFlow<UiState<List<Bill>>> = repository.observeBills(currentUserId)
-        .map<List<Bill>, UiState<List<Bill>>> { list ->
-            UiState.Success(list.sortedBy { it.dueDateEpochDay })
+    // --- NEW FEATURES ---
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _appCurrency = MutableStateFlow("$")
+    val appCurrency: StateFlow<String> = _appCurrency.asStateFlow()
+
+    private val _appTheme = MutableStateFlow("System") // System, Light, Dark
+    val appTheme: StateFlow<String> = _appTheme.asStateFlow()
+
+    val bills: StateFlow<UiState<List<Bill>>> = combine(
+        repository.observeBills(currentUserId),
+        _searchQuery
+    ) { list, query ->
+        val filtered = if (query.isBlank()) {
+            list
+        } else {
+            list.filter { it.title.contains(query, ignoreCase = true) || it.category.contains(query, ignoreCase = true) }
         }
+        UiState.Success(filtered.sortedBy { it.dueDateEpochDay }) as UiState<List<Bill>>
+    }
         .catch { error ->
             val firestoreError = generateSequence(error) { it.cause }
                 .filterIsInstance<FirebaseFirestoreException>()
@@ -138,6 +155,18 @@ class BillViewModel(
 
     fun setFilter(filter: BillFilter) {
         _filterStatus.value = filter
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setAppCurrency(currency: String) {
+        _appCurrency.value = currency
+    }
+
+    fun setAppTheme(theme: String) {
+        _appTheme.value = theme
     }
 
     fun createBill(bill: Bill, onComplete: (Result<String>) -> Unit = {}) {

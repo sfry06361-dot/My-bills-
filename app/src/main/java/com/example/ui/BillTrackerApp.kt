@@ -39,7 +39,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -87,8 +89,17 @@ import com.example.auth.signOut
 import com.example.data.model.Bill
 import com.example.notifications.BillReminderManager
 import com.example.ui.components.AddEditBillDialog
+import com.example.ui.components.AnalyticsTabContent
 import com.example.ui.components.BillCard
 import com.example.ui.components.CalendarView
+import com.example.ui.components.LocalBillsScreen
+import com.example.ui.components.SettingsScreen
+import com.example.ui.components.StartupVideoScreen
+import com.example.ui.LocalBillViewModel
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
@@ -113,9 +124,15 @@ fun BillTrackerApp(
     val monthlyStats by viewModel.monthlyStats.collectAsStateWithLifecycle()
     val billsOnSelectedDate by viewModel.billsOnSelectedDate.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Calendar, 1: All Bills, 2: Reminders
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Calendar, 1: All Bills, 2: Reminders, 3: Analytics, 4: Room DB, 5: Settings
     var billToEdit by remember { mutableStateOf<Bill?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showStartupVideo by remember { mutableStateOf(true) }
+    val appCurrency by viewModel.appCurrency.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val localBillViewModel: LocalBillViewModel = viewModel()
+
+
 
     // Permission handling for notifications
     var hasNotificationPermission by remember {
@@ -233,6 +250,27 @@ fun BillTrackerApp(
                     label = { Text("Reminders") },
                     modifier = Modifier.testTag("nav_tab_reminders")
                 )
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Analytics") },
+                    label = { Text("Analytics") },
+                    modifier = Modifier.testTag("nav_tab_analytics")
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(Icons.Default.Storage, contentDescription = "Room DB") },
+                    label = { Text("Room DB") },
+                    modifier = Modifier.testTag("nav_tab_room_db")
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                    modifier = Modifier.testTag("nav_tab_settings")
+                )
             }
         },
         floatingActionButton = {
@@ -303,6 +341,7 @@ fun BillTrackerApp(
                             allBills = state.data,
                             billsOnSelectedDate = billsOnSelectedDate,
                             monthlyStats = monthlyStats,
+                            appCurrency = appCurrency,
                             onDateSelected = { viewModel.setSelectedDate(it) },
                             onPreviousMonth = { viewModel.previousMonth() },
                             onNextMonth = { viewModel.nextMonth() },
@@ -331,6 +370,9 @@ fun BillTrackerApp(
                         1 -> AllBillsTabContent(
                             bills = state.data,
                             currentFilter = filterStatus,
+                            searchQuery = searchQuery,
+                            appCurrency = appCurrency,
+                            onSearchQueryChanged = { viewModel.setSearchQuery(it) },
                             onFilterSelected = { viewModel.setFilter(it) },
                             onTogglePaid = { viewModel.togglePaid(it) },
                             onEdit = {
@@ -372,11 +414,31 @@ fun BillTrackerApp(
                                 }
                             }
                         )
+                        3 -> AnalyticsTabContent(
+                            bills = state.data,
+                            monthlyStats = monthlyStats
+                        )
+                        4 -> LocalBillsScreen(
+                            viewModel = localBillViewModel,
+                            appCurrency = appCurrency
+                        )
+                         5 -> SettingsScreen(
+                            viewModel = viewModel,
+                            localViewModel = localBillViewModel,
+                            onReplayStartupVideo = { showStartupVideo = true }
+                        )
                     }
                 }
             }
         }
     }
+
+    if (showStartupVideo) {
+        StartupVideoScreen(
+            onDismiss = { showStartupVideo = false }
+        )
+    }
+
 
     // Add / Edit Dialog
     if (showAddDialog) {
@@ -388,8 +450,9 @@ fun BillTrackerApp(
                 billToEdit = null
             },
             onSave = { bill ->
+                val billWithCurrency = bill.copy(currency = appCurrency)
                 if (billToEdit == null) {
-                    viewModel.createBill(bill) { res ->
+                    viewModel.createBill(billWithCurrency) { res ->
                         showAddDialog = false
                         coroutineScope.launch {
                             if (res.isSuccess) {
@@ -414,11 +477,12 @@ fun BillTrackerApp(
                 }
             },
             onTestNotification = { bill ->
-                BillReminderManager.showInstantReminderNotification(context, bill)
+                BillReminderManager.showInstantReminderNotification(context, bill.copy(currency = appCurrency))
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Preview notification triggered!")
                 }
-            }
+            },
+            appCurrency = appCurrency
         )
     }
 }
@@ -430,6 +494,7 @@ private fun CalendarTabContent(
     allBills: List<Bill>,
     billsOnSelectedDate: List<Bill>,
     monthlyStats: MonthlyStats,
+    appCurrency: String,
     onDateSelected: (LocalDate) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -457,7 +522,7 @@ private fun CalendarTabContent(
     ) {
         // Monthly Summary Overview Card
         item {
-            MonthlySummaryCard(stats = monthlyStats)
+            MonthlySummaryCard(stats = monthlyStats, currency = appCurrency)
         }
 
         // Calendar Grid
@@ -544,6 +609,9 @@ private fun CalendarTabContent(
 private fun AllBillsTabContent(
     bills: List<Bill>,
     currentFilter: BillFilter,
+    searchQuery: String,
+    appCurrency: String,
+    onSearchQueryChanged: (String) -> Unit,
     onFilterSelected: (BillFilter) -> Unit,
     onTogglePaid: (Bill) -> Unit,
     onEdit: (Bill) -> Unit,
@@ -566,6 +634,32 @@ private fun AllBillsTabContent(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Search Bar
+        item {
+            androidx.compose.material3.OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("bill_search_bar"),
+                placeholder = { Text("Search bills...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChanged("") }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                )
+            )
+        }
+
         // Filter Chips Row
         item {
             Row(
@@ -801,6 +895,7 @@ private fun RemindersTabContent(
 @Composable
 private fun MonthlySummaryCard(
     stats: MonthlyStats,
+    currency: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -825,17 +920,17 @@ private fun MonthlySummaryCard(
             ) {
                 SummaryStatItem(
                     label = "Total Due",
-                    value = String.format(Locale.US, "$%.2f", stats.totalDue),
+                    value = String.format(Locale.US, "%s%.2f", currency, stats.totalDue),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 SummaryStatItem(
                     label = "Paid So Far",
-                    value = String.format(Locale.US, "$%.2f", stats.totalPaid),
+                    value = String.format(Locale.US, "%s%.2f", currency, stats.totalPaid),
                     color = MaterialTheme.colorScheme.secondary
                 )
                 SummaryStatItem(
                     label = "Remaining",
-                    value = String.format(Locale.US, "$%.2f", stats.totalPending),
+                    value = String.format(Locale.US, "%s%.2f", currency, stats.totalPending),
                     color = MaterialTheme.colorScheme.primary
                 )
             }

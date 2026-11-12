@@ -63,10 +63,15 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun BillTrackTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: String = "System", // System, Light, Dark
     dynamicColor: Boolean = false, // Keep branded emerald/teal aesthetic
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (appTheme) {
+        "Light" -> false
+        "Dark" -> true
+        else -> isSystemInDarkTheme()
+    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

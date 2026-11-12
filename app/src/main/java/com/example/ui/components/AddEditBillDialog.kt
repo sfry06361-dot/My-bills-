@@ -66,7 +66,8 @@ fun AddEditBillDialog(
     initialDate: LocalDate = LocalDate.now(),
     onDismiss: () -> Unit,
     onSave: (Bill) -> Unit,
-    onTestNotification: (Bill) -> Unit
+    onTestNotification: (Bill) -> Unit,
+    appCurrency: String = "$"
 ) {
     val context = LocalContext.current
 
@@ -162,9 +163,9 @@ fun AddEditBillDialog(
                         amountText = it
                         errorMessage = null
                     },
-                    label = { Text("Amount ($)") },
+                    label = { Text("Amount ($appCurrency)") },
                     placeholder = { Text("0.00") },
-                    leadingIcon = { Text("$", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                    leadingIcon = { Text(appCurrency, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -473,7 +474,7 @@ fun AddEditBillDialog(
                                 userId = billToEdit?.userId ?: "",
                                 title = title.trim(),
                                 amount = parsedAmount,
-                                currency = "$",
+                                currency = appCurrency,
                                 category = category,
                                 dueDateEpochDay = dueDate.toEpochDay(),
                                 dueDayOfMonth = dueDate.dayOfMonth,

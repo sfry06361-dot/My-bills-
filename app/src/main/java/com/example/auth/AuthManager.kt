@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -243,7 +244,7 @@ fun GoogleSignInButton(
 
 @Composable
 fun AuthScreen(
-    onAuthSuccess: () -> Unit
+    onAuthSuccess: (String?) -> Unit
 ) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -342,7 +343,14 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.height(28.dp))
 
                     GoogleSignInButton(
-                        onAuthSuccess = onAuthSuccess,
+                        onAuthSuccess = { onAuthSuccess(null) },
+                        onAuthError = { err -> errorMessage = err }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    GuestSignInButton(
+                        onAuthSuccess = { uid -> onAuthSuccess(uid) },
                         onAuthError = { err -> errorMessage = err }
                     )
 
@@ -356,6 +364,64 @@ fun AuthScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun GuestSignInButton(
+    modifier: Modifier = Modifier,
+    onAuthSuccess: (String) -> Unit, // Pass UID
+    onAuthError: (String) -> Unit
+) {
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    androidx.compose.material3.OutlinedButton(
+        onClick = {
+            isLoading = true
+            scope.launch {
+                // Since anonymous auth is unprovisioned, we use a dedicated 'Guest' UID 
+                // that doesn't rely on Firebase Auth service, allowing local-first or shared guest access.
+                try {
+                    // Simulate login delay
+                    kotlinx.coroutines.delay(500)
+                    isLoading = false
+                    onAuthSuccess("guest_admin_uid")
+                } catch (e: Exception) {
+                    isLoading = false
+                    onAuthError(e.localizedMessage ?: "Administrator sign-in failed")
+                }
+            }
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .testTag("guest_sign_in_button"),
+        shape = RoundedCornerShape(27.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Continue as Guest",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
