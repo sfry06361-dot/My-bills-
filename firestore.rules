@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidBill(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.amount is number && data.amount >= 0.0 &&
+             (!('currency' in data) || (data.currency is string && data.currency.size() <= 10)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             data.dueDateEpochDay is int &&
+             (!('dueDayOfMonth' in data) || (data.dueDayOfMonth is int && data.dueDayOfMonth >= 1 && data.dueDayOfMonth <= 31)) &&
+             (!('isRecurring' in data) || data.isRecurring is bool) &&
+             (!('frequency' in data) || (data.frequency is string && data.frequency.size() <= 20)) &&
+             data.isPaid is bool &&
+             (!('paidAtEpochMillis' in data) || data.paidAtEpochMillis == null || data.paidAtEpochMillis is int) &&
+             data.reminderDaysBefore is int && data.reminderDaysBefore >= 0 && data.reminderDaysBefore <= 60 &&
+             (!('reminderEnabled' in data) || data.reminderEnabled is bool) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('paymentUrlOrMethod' in data) || (data.paymentUrlOrMethod is string && data.paymentUrlOrMethod.size() <= 300)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    // User Bills Collection: Isolated by authenticated user ID
+    match /users/{userId}/bills/{billId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(billId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'amount', 'dueDateEpochDay', 'isPaid', 'reminderDaysBefore', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'amount', 'currency', 'category', 'dueDateEpochDay', 'dueDayOfMonth', 'isRecurring', 'frequency', 'isPaid', 'paidAtEpochMillis', 'reminderDaysBefore', 'reminderEnabled', 'notes', 'paymentUrlOrMethod', 'createdAt', 'updatedAt']) &&
+                       isValidBill(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(billId) &&
+                       isValidBill(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'amount', 'currency', 'category', 'dueDateEpochDay',
+                         'dueDayOfMonth', 'isRecurring', 'frequency', 'isPaid',
+                         'paidAtEpochMillis', 'reminderDaysBefore', 'reminderEnabled',
+                         'notes', 'paymentUrlOrMethod', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(billId);
+    }
+  }
+}

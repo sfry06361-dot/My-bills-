@@ -1,0 +1,6 @@
+{
+  "name": "BillTrack",
+  "description": "Track your bills and upcoming payment deadlines with an interactive calendar view and payment management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

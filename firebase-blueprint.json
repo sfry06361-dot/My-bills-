@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "Bill": {
+      "title": "Bill",
+      "description": "Represents an individual bill with amount, category, due date, payment status, and reminder settings",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who owns this bill"
+        },
+        "title": {
+          "type": "string",
+          "description": "Name or title of the bill (e.g., Electric Utility, Rent)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total payment amount due"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency symbol, defaults to $"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category such as Utilities, Housing, Subscription, Insurance, Health, Other"
+        },
+        "dueDateEpochDay": {
+          "type": "integer",
+          "description": "Due date in epoch days for calendar matching"
+        },
+        "dueDayOfMonth": {
+          "type": "integer",
+          "description": "Day of month (1-31) for recurring bills"
+        },
+        "isRecurring": {
+          "type": "boolean",
+          "description": "Whether the bill recurs automatically"
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Recurrence frequency: MONTHLY, YEARLY, WEEKLY, ONE_TIME"
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Whether the bill has been paid for this period"
+        },
+        "paidAtEpochMillis": {
+          "type": "integer",
+          "description": "Timestamp in milliseconds when payment was marked"
+        },
+        "reminderDaysBefore": {
+          "type": "integer",
+          "description": "Customizable advance reminder in days before the deadline"
+        },
+        "reminderEnabled": {
+          "type": "boolean",
+          "description": "Whether payment reminder notification is active"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or account details"
+        },
+        "paymentUrlOrMethod": {
+          "type": "string",
+          "description": "Optional payment link or payment method description"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "amount",
+        "dueDateEpochDay",
+        "isPaid",
+        "reminderDaysBefore",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/bills/{billId}": {
+      "schema": "Bill",
+      "description": "Collection of bills owned by the authenticated user"
+    }
+  }
+}
