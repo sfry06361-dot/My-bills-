@@ -290,7 +290,7 @@ fun AuthScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "BillTrack Calendar",
+                            contentDescription = "My bills reminder Calendar",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(40.dp)
                         )
@@ -299,7 +299,7 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
-                        text = "BillTrack",
+                        text = "My bills reminder",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -328,15 +328,18 @@ fun AuthScreen(
                     ) {
                         FeatureRow(
                             icon = Icons.Default.CalendarMonth,
-                            text = "Interactive Monthly Deadline Calendar"
+                            text = "Interactive Multi-Color Deadline Calendar",
+                            tint = Color(0xFF4F46E5)
                         )
                         FeatureRow(
                             icon = Icons.Default.NotificationsActive,
-                            text = "Customizable advance reminders (1-7+ days)"
+                            text = "40 Smart Features + 10 Background Tasks",
+                            tint = Color(0xFFDB2777)
                         )
                         FeatureRow(
                             icon = Icons.Default.CheckCircle,
-                            text = "Cloud-synced payment tracking & history"
+                            text = "Cloud Sync, Room DB & Instant Startup Video",
+                            tint = Color(0xFFEA580C)
                         )
                     }
 
@@ -430,7 +433,8 @@ fun GuestSignInButton(
 @Composable
 private fun FeatureRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String
+    text: String,
+    tint: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -439,7 +443,7 @@ private fun FeatureRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = tint,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))

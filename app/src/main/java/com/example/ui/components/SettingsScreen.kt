@@ -109,10 +109,10 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section: Startup Explainer Video
+        // Section: Startup Explainer Video (Violet Accent)
         Card(
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.PaletteViolet.copy(alpha = 0.14f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -122,13 +122,13 @@ fun SettingsScreen(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)),
+                        .background(com.example.ui.theme.PaletteViolet, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = androidx.compose.ui.graphics.Color.White
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -164,7 +164,7 @@ fun SettingsScreen(
                 Text(
                     text = "Language & Arpic Preferences",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
+                    color = com.example.ui.theme.PaletteSky
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -178,14 +178,14 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Language, contentDescription = null, tint = com.example.ui.theme.PaletteSky)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(text = "App Language (10 Available)", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                             Text(text = selectedLanguage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Text(text = "Change", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                    Text(text = "Change", color = com.example.ui.theme.PaletteSky, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                 }
 
                 // Theme Selector row
@@ -198,14 +198,14 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Settings, contentDescription = null, tint = com.example.ui.theme.PaletteIndigo)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(text = "App Appearance", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                             Text(text = appTheme, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Text(text = "Change", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                    Text(text = "Change", color = com.example.ui.theme.PaletteIndigo, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -220,14 +220,14 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CurrencyExchange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.CurrencyExchange, contentDescription = null, tint = com.example.ui.theme.PaletteAmber)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(text = "Primary Currency", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                             Text(text = "Currently: $appCurrency", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Text(text = "Change", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                    Text(text = "Change", color = com.example.ui.theme.PaletteAmber, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -241,7 +241,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.VolumeUp, contentDescription = null, tint = com.example.ui.theme.PaletteMagenta)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(text = "Arpic Audio Sound FX", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
@@ -366,11 +366,11 @@ fun SettingsScreen(
                 Text(
                     text = "5 Important Financial Tools",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
+                    color = com.example.ui.theme.PaletteOrange
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Quick utilities built directly into your bill tracker",
+                    text = "Quick utilities built directly into My bills reminder",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -381,6 +381,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Download,
                     title = "1. Export Data (Download CSV)",
                     subtitle = "Download all cloud and local bills to a file",
+                    accentColor = com.example.ui.theme.PaletteEmerald,
                     onClick = {
                         val cloudBills = (billsState as? UiState.Success)?.data ?: emptyList()
                         val result = DataExportUtility.exportBillsToCsv(context, cloudBills, localBills)
@@ -392,30 +393,35 @@ fun SettingsScreen(
                     icon = Icons.Default.Calculate,
                     title = "2. Debt Payoff Calculator",
                     subtitle = "Functional debt snowball tool",
+                    accentColor = com.example.ui.theme.PaletteIndigo,
                     onClick = { activeToolDialog = "debt" }
                 )
                 ToolItemRow(
                     icon = Icons.Default.Splitscreen,
                     title = "3. Bill Splitter",
                     subtitle = "Split shared utility and rent bills",
+                    accentColor = com.example.ui.theme.PaletteSky,
                     onClick = { activeToolDialog = "splitter" }
                 )
                 ToolItemRow(
                     icon = Icons.Default.Lock,
                     title = "4. App Security & Biometric",
                     subtitle = "Configure passcode protection",
+                    accentColor = com.example.ui.theme.PaletteRose,
                     onClick = { activeToolDialog = "security" }
                 )
                 ToolItemRow(
                     icon = Icons.Default.Check,
                     title = "5. Bill Auditor",
                     subtitle = "Verify payment receipts and history",
+                    accentColor = com.example.ui.theme.PaletteAmber,
                     onClick = { activeToolDialog = "auditor" }
                 )
                 ToolItemRow(
                     icon = Icons.Default.Security,
                     title = "6. System Administration & Version",
                     subtitle = "Manage app files, versions, and security",
+                    accentColor = com.example.ui.theme.PaletteViolet,
                     onClick = { activeToolDialog = "admin" }
                 )
             }
@@ -429,14 +435,14 @@ fun SettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "BillTrack v1.2.0 (Build 76)",
+                text = "My bills reminder v1.2.0 (Build 76)",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
             Text(
                 text = "Everything in the app is visible and under the cover",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
@@ -558,16 +564,18 @@ fun SettingsScreen(
             "splitter" -> "Bill Splitter & Roommate Calculator"
             "backup" -> "CSV Backup & Data Export"
             "security" -> "App Security & Biometric Lock"
+            "auditor" -> "Bill Payment Auditor"
             "admin" -> "System Administration Mode"
             else -> "Tool"
         }
         val toolDescription = when (activeToolDialog) {
-            "currency" -> "Easily convert bills between USD ($), EUR (€), GBP (£), JPY (¥), CAD, AUD, and AED."
+            "currency" -> "Easily convert bills between USD ($), EUR (€), GBP (£), JPY (¥), CAD, AUD, SAR, EGP, and AED."
             "debt" -> "Input your credit card or loan balances and interest rates to view accelerated payoff schedules."
             "splitter" -> "Divide household bills and shared grocery or utility costs among roommates instantly."
             "backup" -> "Your bills are securely synchronized with Cloud Firestore and stored locally in Room SQLite database. Export CSV backup anytime."
             "security" -> "Biometric lock prevents unauthorized access when your device is unlocked."
-            "admin" -> "Administration Panel: Version v1.2.0 (Build 76). Everything in the app is visible and under the cover. You can download all database files as CSV for offline audit. Guest administrator privileges are active."
+            "auditor" -> "Audit checked ${(billsState as? UiState.Success)?.data?.size ?: 0} cloud bills and ${localBills.size} local Room bills."
+            "admin" -> "My bills reminder Administration Panel: Version v1.2.0 (Build 76). Everything in the app is visible and under the cover."
             else -> ""
         }
 
@@ -597,6 +605,7 @@ private fun ToolItemRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
+    accentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit
 ) {
     Row(
@@ -609,13 +618,13 @@ private fun ToolItemRow(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                .background(accentColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = accentColor,
                 modifier = Modifier.size(20.dp)
             )
         }

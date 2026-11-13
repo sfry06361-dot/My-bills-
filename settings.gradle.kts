@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "BillTrack"
+rootProject.name = "My bills reminder"
 
 include(":app")

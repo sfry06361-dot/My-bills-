@@ -43,6 +43,7 @@ import java.util.Locale
 fun AnalyticsTabContent(
     bills: List<Bill>,
     monthlyStats: MonthlyStats,
+    currency: String = "$",
     modifier: Modifier = Modifier
 ) {
     val today = remember { LocalDate.now() }
@@ -67,7 +68,7 @@ fun AnalyticsTabContent(
         item {
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.PaletteViolet.copy(alpha = 0.14f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -77,13 +78,13 @@ fun AnalyticsTabContent(
                     Box(
                         modifier = Modifier
                             .size(52.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
+                            .background(com.example.ui.theme.PaletteViolet, RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.BarChart,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -94,7 +95,7 @@ fun AnalyticsTabContent(
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "Category breakdown & payment statistics",
+                            text = "Multi-color category breakdown & payment statistics",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -113,21 +114,21 @@ fun AnalyticsTabContent(
                     title = "Total Bills",
                     value = totalBillsCount.toString(),
                     subtitle = "$paidBillsCount paid",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = com.example.ui.theme.PaletteIndigo,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Paid Ratio",
                     value = if (totalBillsCount > 0) "${(paidBillsCount * 100) / totalBillsCount}%" else "0%",
-                    subtitle = String.format(Locale.US, "$%.2f paid", monthlyStats.totalPaid),
-                    color = MaterialTheme.colorScheme.secondary,
+                    subtitle = String.format(Locale.US, "%s%.2f paid", currency, monthlyStats.totalPaid),
+                    color = com.example.ui.theme.PaletteCyan,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Overdue",
                     value = overdueBillsCount.toString(),
                     subtitle = "Needs attention",
-                    color = MaterialTheme.colorScheme.error,
+                    color = com.example.ui.theme.PaletteRose,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -162,6 +163,7 @@ fun AnalyticsTabContent(
                 val (category, amount) = spendingByCategory[index]
                 val fraction = (amount / maxCategorySpend).toFloat().coerceIn(0.05f, 1f)
                 val percentageOfTotal = if (monthlyStats.totalDue > 0) (amount / monthlyStats.totalDue * 100).toInt() else 0
+                val barColor = com.example.ui.theme.MultiColorPalette[index % com.example.ui.theme.MultiColorPalette.size]
 
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -191,22 +193,22 @@ fun AnalyticsTabContent(
                                 }
                             }
                             Text(
-                                text = String.format(Locale.US, "$%.2f", amount),
+                                text = String.format(Locale.US, "%s%.2f", currency, amount),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
+                                color = barColor
                             )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         LinearProgressIndicator(
-                            progress = fraction,
+                            progress = { fraction },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            color = barColor,
+                            trackColor = barColor.copy(alpha = 0.16f)
                         )
                     }
                 }

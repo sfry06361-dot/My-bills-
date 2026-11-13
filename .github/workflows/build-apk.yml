@@ -31,10 +31,10 @@ jobs:
       - name: Build Debug APK
         run: gradle assembleDebug
 
-      - name: Upload BillTrack APK Artifact
+      - name: Upload My bills reminder APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BillTrack-APK
+          name: MyBillsReminder-APK
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Attach APK to GitHub Release (on tag push)

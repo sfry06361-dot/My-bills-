@@ -24,7 +24,7 @@ object DataExportUtility {
         localBills: List<LocalBillEntity>
     ): Result<String> {
         return try {
-            val fileName = "BillTrack_Export_${System.currentTimeMillis()}.csv"
+            val fileName = "MyBillsReminder_Export_${System.currentTimeMillis()}.csv"
             val csvBuilder = StringBuilder()
             csvBuilder.append("Source,Title,Amount,Currency,Category,DueDate,IsPaid,Notes\n")
 
@@ -66,10 +66,10 @@ object DataExportUtility {
         localBills: List<LocalBillEntity> = emptyList()
     ): Result<String> {
         return try {
-            val fileName = "BillTrack_Backup_${System.currentTimeMillis()}.json"
+            val fileName = "MyBillsReminder_Backup_${System.currentTimeMillis()}.json"
             val jsonContent = buildString {
                 append("{\n")
-                append("  \"app_name\": \"BillTrack\",\n")
+                append("  \"app_name\": \"My bills reminder\",\n")
                 append("  \"version\": \"1.2.0\",\n")
                 append("  \"cloud_bills_count\": ${bills.size},\n")
                 append("  \"local_bills_count\": ${localBills.size},\n")
@@ -114,10 +114,10 @@ object DataExportUtility {
         val playUrl = "https://play.google.com/store/apps/details?id=${context.packageName}"
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "BillTrack")
-            putExtra(Intent.EXTRA_TEXT, "Track your bills and payment deadlines with BillTrack: $playUrl")
+            putExtra(Intent.EXTRA_SUBJECT, "My bills reminder")
+            putExtra(Intent.EXTRA_TEXT, "Track your bills and payment deadlines with My bills reminder: $playUrl")
         }
-        context.startActivity(Intent.createChooser(shareIntent, "Share BillTrack"))
+        context.startActivity(Intent.createChooser(shareIntent, "Share My bills reminder"))
     }
 
     private fun saveBytesToDownloads(

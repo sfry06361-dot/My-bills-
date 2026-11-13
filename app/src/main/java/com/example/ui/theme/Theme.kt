@@ -12,14 +12,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = TealDarkPrimary,
-    onPrimary = Color(0xFF003833),
-    primaryContainer = TealDarkContainer,
-    onPrimaryContainer = TealDarkOnContainer,
-    secondary = EmeraldDarkSecondary,
-    onSecondary = Color(0xFF003922),
-    secondaryContainer = EmeraldDarkContainer,
-    onSecondaryContainer = Color(0xFFD1FAE5),
+    primary = IndigoDarkPrimary,
+    onPrimary = Color(0xFF1E1B4B),
+    primaryContainer = IndigoDarkContainer,
+    onPrimaryContainer = IndigoDarkOnContainer,
+    secondary = SkyDarkSecondary,
+    onSecondary = Color(0xFF082F49),
+    secondaryContainer = SkyDarkContainer,
+    onSecondaryContainer = Color(0xFFE0F2FE),
     tertiary = AmberLight,
     onTertiary = Color(0xFF451A03),
     tertiaryContainer = AmberOnContainer,
@@ -37,14 +37,14 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = TealPrimary,
+    primary = IndigoPrimary,
     onPrimary = Color.White,
-    primaryContainer = TealContainer,
-    onPrimaryContainer = TealOnContainer,
-    secondary = EmeraldSecondary,
+    primaryContainer = IndigoContainer,
+    onPrimaryContainer = IndigoOnContainer,
+    secondary = SkySecondary,
     onSecondary = Color.White,
-    secondaryContainer = EmeraldContainer,
-    onSecondaryContainer = EmeraldOnContainer,
+    secondaryContainer = SkyContainer,
+    onSecondaryContainer = SkyOnContainer,
     tertiary = AmberAccent,
     onTertiary = Color.White,
     tertiaryContainer = AmberContainer,
@@ -64,7 +64,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun BillTrackTheme(
     appTheme: String = "System", // System, Light, Dark
-    dynamicColor: Boolean = false, // Keep branded emerald/teal aesthetic
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (appTheme) {

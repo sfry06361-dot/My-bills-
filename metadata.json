@@ -1,6 +1,6 @@
 {
-  "name": "BillTrack",
-  "description": "Track your bills and upcoming payment deadlines with an interactive calendar view and payment management.",
+  "name": "My bills reminder",
+  "description": "Track your bills and upcoming payment deadlines with an interactive calendar view, 40+ smart tools, and background reminders.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

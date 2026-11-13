@@ -30,41 +30,44 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -75,31 +78,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.auth.signOut
 import com.example.data.model.Bill
+import com.example.notifications.BackgroundFeaturesEngine
 import com.example.notifications.BillReminderManager
 import com.example.ui.components.AddEditBillDialog
 import com.example.ui.components.AnalyticsTabContent
 import com.example.ui.components.BillCard
 import com.example.ui.components.CalendarView
+import com.example.ui.components.FeaturesHubScreen
 import com.example.ui.components.LocalBillsScreen
 import com.example.ui.components.SettingsScreen
 import com.example.ui.components.StartupVideoScreen
-import com.example.ui.LocalBillViewModel
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.theme.MultiColorPalette
+import com.example.ui.theme.PaletteAmber
+import com.example.ui.theme.PaletteEmerald
+import com.example.ui.theme.PaletteIndigo
+import com.example.ui.theme.PaletteMagenta
+import com.example.ui.theme.PaletteOrange
+import com.example.ui.theme.PaletteRose
+import com.example.ui.theme.PaletteSky
+import com.example.ui.theme.PaletteViolet
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
@@ -124,15 +135,27 @@ fun BillTrackerApp(
     val monthlyStats by viewModel.monthlyStats.collectAsStateWithLifecycle()
     val billsOnSelectedDate by viewModel.billsOnSelectedDate.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Calendar, 1: All Bills, 2: Reminders, 3: Analytics, 4: Room DB, 5: Settings
+    // 0: Calendar, 1: Bills (Cloud/Reminders/Room), 2: Features (40+10), 3: Analytics, 4: Settings
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var billsSubTab by remember { mutableIntStateOf(0) } // 0: All Bills, 1: Reminders, 2: Room DB
     var billToEdit by remember { mutableStateOf<Bill?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
-    var showStartupVideo by remember { mutableStateOf(true) }
+    // Keyed on currentUserId so StartupVideoScreen auto-plays immediately on every sign-in
+    var showStartupVideo by remember(viewModel.currentUserId) { mutableStateOf(true) }
+
     val appCurrency by viewModel.appCurrency.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val localBillViewModel: LocalBillViewModel = viewModel()
+    val localBills by localBillViewModel.allLocalBills.collectAsStateWithLifecycle()
 
+    // 10 Background Features Engine
+    val bgEngine = remember(context) { BackgroundFeaturesEngine(context) }
+    val backgroundFeatures by bgEngine.features.collectAsStateWithLifecycle()
 
+    DisposableEffect(bgEngine) {
+        bgEngine.startPeriodicBackgroundMonitoring()
+        onDispose { bgEngine.stop() }
+    }
 
     // Permission handling for notifications
     var hasNotificationPermission by remember {
@@ -165,6 +188,21 @@ fun BillTrackerApp(
 
     val allBills = (billsState as? UiState.Success)?.data ?: emptyList()
 
+    LaunchedEffect(allBills, localBills) {
+        bgEngine.updateBillData(allBills, localBills)
+    }
+
+    val tabColors = remember {
+        listOf(
+            PaletteIndigo,   // 0: Calendar
+            PaletteSky,      // 1: Bills
+            PaletteMagenta,  // 2: Features
+            PaletteViolet,   // 3: Analytics
+            PaletteOrange    // 4: Settings
+        )
+    }
+    val activeTabColor = tabColors[selectedTab.coerceIn(0, tabColors.lastIndex)]
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -173,32 +211,37 @@ fun BillTrackerApp(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primary),
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(activeTabColor, PaletteMagenta)
+                                    )
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(20.dp)
+                                tint = Color.White,
+                                modifier = Modifier.size(21.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "BillTrack",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                text = "My bills reminder",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             val userEmail = Firebase.auth.currentUser?.email
-                            if (userEmail != null) {
-                                Text(
-                                    text = userEmail,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            val subtitle = userEmail ?: "Guest • 40+10 Features"
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = activeTabColor
+                            )
                         }
                     }
                 },
@@ -233,58 +276,78 @@ fun BillTrackerApp(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
-                    label = { Text("Calendar") },
+                    label = { Text("Calendar", maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaletteIndigo,
+                        selectedTextColor = PaletteIndigo,
+                        indicatorColor = PaletteIndigo.copy(alpha = 0.15f)
+                    ),
                     modifier = Modifier.testTag("nav_tab_calendar")
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = "Bills") },
-                    label = { Text("Bills") },
+                    label = { Text("Bills", maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaletteSky,
+                        selectedTextColor = PaletteSky,
+                        indicatorColor = PaletteSky.copy(alpha = 0.15f)
+                    ),
                     modifier = Modifier.testTag("nav_tab_bills")
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.NotificationsActive, contentDescription = "Reminders") },
-                    label = { Text("Reminders") },
-                    modifier = Modifier.testTag("nav_tab_reminders")
+                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Features") },
+                    label = { Text("Features", maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaletteMagenta,
+                        selectedTextColor = PaletteMagenta,
+                        indicatorColor = PaletteMagenta.copy(alpha = 0.15f)
+                    ),
+                    modifier = Modifier.testTag("nav_tab_features")
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
                     icon = { Icon(Icons.Default.BarChart, contentDescription = "Analytics") },
-                    label = { Text("Analytics") },
+                    label = { Text("Analytics", maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaletteViolet,
+                        selectedTextColor = PaletteViolet,
+                        indicatorColor = PaletteViolet.copy(alpha = 0.15f)
+                    ),
                     modifier = Modifier.testTag("nav_tab_analytics")
                 )
                 NavigationBarItem(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
-                    icon = { Icon(Icons.Default.Storage, contentDescription = "Room DB") },
-                    label = { Text("Room DB") },
-                    modifier = Modifier.testTag("nav_tab_room_db")
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 5,
-                    onClick = { selectedTab = 5 },
                     icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") },
+                    label = { Text("Settings", maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaletteOrange,
+                        selectedTextColor = PaletteOrange,
+                        indicatorColor = PaletteOrange.copy(alpha = 0.15f)
+                    ),
                     modifier = Modifier.testTag("nav_tab_settings")
                 )
             }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    billToEdit = null
-                    showAddDialog = true
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add Bill") },
-                text = { Text("Add Bill") },
-                modifier = Modifier.testTag("add_bill_fab"),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+            if (selectedTab == 0 || (selectedTab == 1 && billsSubTab != 2)) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        billToEdit = null
+                        showAddDialog = true
+                    },
+                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Bill") },
+                    text = { Text("Add Bill") },
+                    modifier = Modifier.testTag("add_bill_fab"),
+                    containerColor = activeTabColor,
+                    contentColor = Color.White
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
@@ -367,62 +430,155 @@ fun BillTrackerApp(
                                 }
                             }
                         )
-                        1 -> AllBillsTabContent(
-                            bills = state.data,
-                            currentFilter = filterStatus,
-                            searchQuery = searchQuery,
-                            appCurrency = appCurrency,
-                            onSearchQueryChanged = { viewModel.setSearchQuery(it) },
-                            onFilterSelected = { viewModel.setFilter(it) },
-                            onTogglePaid = { viewModel.togglePaid(it) },
-                            onEdit = {
-                                billToEdit = it
-                                showAddDialog = true
-                            },
-                            onDelete = { bill ->
-                                viewModel.deleteBill(bill.id) { res ->
-                                    coroutineScope.launch {
-                                        if (res.isSuccess) {
-                                            snackbarHostState.showSnackbar("Deleted ${bill.title}")
+                        1 -> Column(modifier = Modifier.fillMaxSize()) {
+                            BillsSubTabBar(
+                                selectedSubTab = billsSubTab,
+                                onSelectSubTab = { billsSubTab = it }
+                            )
+                            Box(modifier = Modifier.weight(1f)) {
+                                when (billsSubTab) {
+                                    0 -> AllBillsTabContent(
+                                        bills = state.data,
+                                        currentFilter = filterStatus,
+                                        searchQuery = searchQuery,
+                                        appCurrency = appCurrency,
+                                        onSearchQueryChanged = { viewModel.setSearchQuery(it) },
+                                        onFilterSelected = { viewModel.setFilter(it) },
+                                        onTogglePaid = { viewModel.togglePaid(it) },
+                                        onEdit = {
+                                            billToEdit = it
+                                            showAddDialog = true
+                                        },
+                                        onDelete = { bill ->
+                                            viewModel.deleteBill(bill.id) { res ->
+                                                coroutineScope.launch {
+                                                    if (res.isSuccess) {
+                                                        snackbarHostState.showSnackbar("Deleted ${bill.title}")
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onTestReminder = { bill ->
+                                            BillReminderManager.showInstantReminderNotification(context, bill)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Reminder sent for ${bill.title}")
+                                            }
                                         }
-                                    }
-                                }
-                            },
-                            onTestReminder = { bill ->
-                                BillReminderManager.showInstantReminderNotification(context, bill)
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Reminder sent for ${bill.title}")
+                                    )
+                                    1 -> RemindersTabContent(
+                                        bills = state.data,
+                                        hasPermission = hasNotificationPermission,
+                                        onRequestPermission = {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                            }
+                                        },
+                                        onEdit = {
+                                            billToEdit = it
+                                            showAddDialog = true
+                                        },
+                                        onTestReminder = { bill ->
+                                            BillReminderManager.showInstantReminderNotification(context, bill)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Sent reminder for ${bill.title} (${bill.reminderDaysBefore}d in advance)")
+                                            }
+                                        }
+                                    )
+                                    else -> LocalBillsScreen(
+                                        viewModel = localBillViewModel,
+                                        appCurrency = appCurrency
+                                    )
                                 }
                             }
-                        )
-                        2 -> RemindersTabContent(
+                        }
+                        2 -> FeaturesHubScreen(
                             bills = state.data,
-                            hasPermission = hasNotificationPermission,
-                            onRequestPermission = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
+                            localBills = localBills,
+                            backgroundFeatures = backgroundFeatures,
+                            currency = appCurrency,
+                            onToggleBackgroundFeature = { key, enabled ->
+                                bgEngine.toggleFeature(key, enabled)
                             },
-                            onEdit = {
-                                billToEdit = it
-                                showAddDialog = true
+                            onRunAllBackgroundNow = {
+                                bgEngine.runAllEnabledTasks(notifyUser = true)
                             },
-                            onTestReminder = { bill ->
-                                BillReminderManager.showInstantReminderNotification(context, bill)
+                            onAddSampleBills = {
+                                val today = LocalDate.now()
+                                val samples = listOf(
+                                    Bill(
+                                        title = "Fiber Internet",
+                                        amount = 59.99,
+                                        currency = appCurrency,
+                                        dueDateEpochDay = today.plusDays(2).toEpochDay(),
+                                        category = "Internet",
+                                        isRecurring = true,
+                                        reminderDaysBefore = 2,
+                                        notes = "Monthly high-speed fiber"
+                                    ),
+                                    Bill(
+                                        title = "Electric Grid",
+                                        amount = 112.50,
+                                        currency = appCurrency,
+                                        dueDateEpochDay = today.plusDays(5).toEpochDay(),
+                                        category = "Utilities",
+                                        isRecurring = true,
+                                        reminderDaysBefore = 3,
+                                        notes = "Home electricity bill"
+                                    ),
+                                    Bill(
+                                        title = "Health Shield Insurance",
+                                        amount = 185.00,
+                                        currency = appCurrency,
+                                        dueDateEpochDay = today.plusDays(1).toEpochDay(),
+                                        category = "Insurance",
+                                        isRecurring = true,
+                                        reminderDaysBefore = 3
+                                    ),
+                                    Bill(
+                                        title = "Apartment Rent",
+                                        amount = 850.00,
+                                        currency = appCurrency,
+                                        dueDateEpochDay = today.plusDays(9).toEpochDay(),
+                                        category = "Housing",
+                                        isRecurring = true,
+                                        reminderDaysBefore = 5
+                                    ),
+                                    Bill(
+                                        title = "Auto Lease",
+                                        amount = 290.00,
+                                        currency = appCurrency,
+                                        dueDateEpochDay = today.minusDays(1).toEpochDay(),
+                                        category = "Car",
+                                        isRecurring = true,
+                                        reminderDaysBefore = 3
+                                    )
+                                )
+                                samples.forEach { sample -> viewModel.createBill(sample) }
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Sent reminder for ${bill.title} (${bill.reminderDaysBefore}d in advance)")
+                                    snackbarHostState.showSnackbar("Added 5 colorful sample bills!")
                                 }
-                            }
+                            },
+                            onMarkBillPaid = { viewModel.togglePaid(it) },
+                            onNavigateToCalendarToday = {
+                                viewModel.goToToday()
+                                selectedTab = 0
+                            },
+                            onNavigateToBillsSearch = {
+                                billsSubTab = 0
+                                selectedTab = 1
+                            },
+                            onNavigateToRoomDb = {
+                                billsSubTab = 2
+                                selectedTab = 1
+                            },
+                            onReplayStartupVideo = { showStartupVideo = true }
                         )
                         3 -> AnalyticsTabContent(
                             bills = state.data,
-                            monthlyStats = monthlyStats
+                            monthlyStats = monthlyStats,
+                            currency = appCurrency
                         )
-                        4 -> LocalBillsScreen(
-                            viewModel = localBillViewModel,
-                            appCurrency = appCurrency
-                        )
-                         5 -> SettingsScreen(
+                        4 -> SettingsScreen(
                             viewModel = viewModel,
                             localViewModel = localBillViewModel,
                             onReplayStartupVideo = { showStartupVideo = true }
@@ -660,17 +816,25 @@ private fun AllBillsTabContent(
             )
         }
 
-        // Filter Chips Row
+        // Filter Chips Row (each filter has its own distinct color)
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                BillFilter.values().forEach { filter ->
+                val filterColors = listOf(PaletteIndigo, PaletteSky, PaletteRose, PaletteEmerald)
+                BillFilter.values().forEachIndexed { idx, filter ->
+                    val chipColor = filterColors[idx % filterColors.size]
                     FilterChip(
                         selected = currentFilter == filter,
                         onClick = { onFilterSelected(filter) },
                         label = { Text(filter.label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = chipColor.copy(alpha = 0.18f),
+                            selectedLabelColor = chipColor
+                        ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("filter_chip_${filter.name.lowercase()}")
                     )
@@ -893,6 +1057,58 @@ private fun RemindersTabContent(
 }
 
 @Composable
+private fun BillsSubTabBar(
+    selectedSubTab: Int,
+    onSelectSubTab: (Int) -> Unit
+) {
+    val pills = listOf(
+        Triple("Cloud Bills", Icons.AutoMirrored.Filled.ReceiptLong, PaletteSky),
+        Triple("Reminders", Icons.Default.NotificationsActive, PaletteAmber),
+        Triple("Room DB", Icons.Default.Storage, PaletteEmerald)
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        pills.forEachIndexed { index, (label, icon, accentColor) ->
+            val selected = selectedSubTab == index
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onSelectSubTab(index) }
+                    .testTag("bills_subtab_$index"),
+                shape = RoundedCornerShape(14.dp),
+                color = if (selected) accentColor else accentColor.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = if (selected) Color.White else accentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (selected) Color.White else accentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MonthlySummaryCard(
     stats: MonthlyStats,
     currency: String,
@@ -902,15 +1118,32 @@ private fun MonthlySummaryCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            containerColor = PaletteIndigo.copy(alpha = 0.08f)
         )
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "Month At A Glance",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Month At A Glance",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = PaletteIndigo
+                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = PaletteMagenta.copy(alpha = 0.14f)
+                ) {
+                    Text(
+                        text = "${stats.upcomingCount} upcoming",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = PaletteMagenta,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -921,17 +1154,17 @@ private fun MonthlySummaryCard(
                 SummaryStatItem(
                     label = "Total Due",
                     value = String.format(Locale.US, "%s%.2f", currency, stats.totalDue),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = PaletteViolet
                 )
                 SummaryStatItem(
                     label = "Paid So Far",
                     value = String.format(Locale.US, "%s%.2f", currency, stats.totalPaid),
-                    color = MaterialTheme.colorScheme.secondary
+                    color = PaletteEmerald
                 )
                 SummaryStatItem(
                     label = "Remaining",
                     value = String.format(Locale.US, "%s%.2f", currency, stats.totalPending),
-                    color = MaterialTheme.colorScheme.primary
+                    color = PaletteAmber
                 )
             }
 
@@ -939,7 +1172,7 @@ private fun MonthlySummaryCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                    color = PaletteRose.copy(alpha = 0.15f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -949,14 +1182,14 @@ private fun MonthlySummaryCard(
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = PaletteRose,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "${stats.overdueCount} overdue bill deadline(s) require attention!",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = PaletteRose
                         )
                     }
                 }
