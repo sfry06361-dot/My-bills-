@@ -256,7 +256,7 @@ fun SettingsScreen(
             }
         }
 
-        // Section: In-App App & File Download Center
+        // Section: In-App File & Store Center
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
@@ -280,11 +280,11 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "In-App File & App Download Center",
+                            text = "In-App File Download & Store Center",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "Download app APK installer or export bill files directly",
+                            text = "Save bill exports directly to Downloads or share via Google Play",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -299,38 +299,57 @@ fun SettingsScreen(
                 ) {
                     Button(
                         onClick = {
-                            DataExportUtility.exportAppApkFile(context)
-                            Toast.makeText(context, "Preparing App APK download...", Toast.LENGTH_SHORT).show()
+                            val cloudBills = (billsState as? UiState.Success)?.data ?: emptyList()
+                            val result = DataExportUtility.exportBillsToCsv(context, cloudBills, localBills)
+                            val msg = result.getOrElse { "Export failed: ${it.localizedMessage}" }
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("download_app_apk_button"),
+                            .testTag("download_data_file_button"),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Download App (APK)", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            Text("Download CSV", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                         }
                     }
 
                     OutlinedButton(
                         onClick = {
-                            val cloudBills = (billsState as? com.example.ui.UiState.Success)?.data ?: emptyList()
-                            DataExportUtility.exportBillsToCsv(context, cloudBills, localBills)
-                            Toast.makeText(context, "Preparing CSV download...", Toast.LENGTH_SHORT).show()
+                            val cloudBills = (billsState as? UiState.Success)?.data ?: emptyList()
+                            val result = DataExportUtility.exportAppBackupBundle(context, cloudBills, localBills)
+                            val msg = result.getOrElse { "Backup failed: ${it.localizedMessage}" }
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("download_data_file_button"),
+                            .testTag("download_backup_json_button"),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Download Data (CSV)", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            Text("Backup JSON", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = { DataExportUtility.openPlayStoreListing(context) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("open_play_store_button"),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Open on Google Play Store", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
@@ -363,9 +382,10 @@ fun SettingsScreen(
                     title = "1. Export Data (Download CSV)",
                     subtitle = "Download all cloud and local bills to a file",
                     onClick = {
-                        val cloudBills = (billsState as? com.example.ui.UiState.Success)?.data ?: emptyList()
-                        DataExportUtility.exportBillsToCsv(context, cloudBills, localBills)
-                        Toast.makeText(context, "Preparing CSV download...", Toast.LENGTH_SHORT).show()
+                        val cloudBills = (billsState as? UiState.Success)?.data ?: emptyList()
+                        val result = DataExportUtility.exportBillsToCsv(context, cloudBills, localBills)
+                        val msg = result.getOrElse { "Export failed: ${it.localizedMessage}" }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
                 )
                 ToolItemRow(

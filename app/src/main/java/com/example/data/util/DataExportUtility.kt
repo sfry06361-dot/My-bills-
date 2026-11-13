@@ -1,134 +1,166 @@
 package com.example.data.util
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.example.data.model.Bill
 import com.example.data.room.LocalBillEntity
 import java.io.File
-import java.io.FileOutputStream
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object DataExportUtility {
 
     /**
-     * Exports a list of bills to a CSV file and triggers a share/download intent.
+     * Exports bills directly to the device Downloads folder as a CSV file
+     * using MediaStore (Android 10+, zero permissions) or app external Downloads.
      */
-    fun exportBillsToCsv(context: Context, bills: List<Bill>, localBills: List<LocalBillEntity>) {
-        try {
+    fun exportBillsToCsv(
+        context: Context,
+        bills: List<Bill>,
+        localBills: List<LocalBillEntity>
+    ): Result<String> {
+        return try {
             val fileName = "BillTrack_Export_${System.currentTimeMillis()}.csv"
-            val file = File(context.cacheDir, fileName)
-            val outputStream = FileOutputStream(file)
+            val csvBuilder = StringBuilder()
+            csvBuilder.append("Source,Title,Amount,Currency,Category,DueDate,IsPaid,Notes\n")
 
-            val header = "Source,Title,Amount,Currency,Category,DueDate,IsPaid,Notes\n"
-            outputStream.write(header.toByteArray())
-
-            // Export Cloud Bills
             bills.forEach { bill ->
-                val line = "Cloud,\"${bill.title}\",${bill.amount},${bill.currency},\"${bill.category}\",${bill.dueDate},${bill.isPaid},\"${bill.notes}\"\n"
-                outputStream.write(line.toByteArray())
+                val safeTitle = bill.title.replace("\"", "\"\"")
+                val safeCategory = bill.category.replace("\"", "\"\"")
+                val safeNotes = bill.notes.replace("\"", "\"\"")
+                csvBuilder.append(
+                    "Cloud,\"$safeTitle\",${bill.amount},${bill.currency},\"$safeCategory\",${bill.dueDate},${bill.isPaid},\"$safeNotes\"\n"
+                )
             }
 
-            // Export Room Local Bills
             localBills.forEach { bill ->
-                val line = "Local,\"${bill.name}\",${bill.amount},$,\"${bill.category}\",${bill.dueDate},${bill.isPaid},\"Local Storage\"\n"
-                outputStream.write(line.toByteArray())
+                val safeName = bill.name.replace("\"", "\"\"")
+                val safeCategory = bill.category.replace("\"", "\"\"")
+                csvBuilder.append(
+                    "Local,\"$safeName\",${bill.amount},$,\"$safeCategory\",${bill.dueDate},${bill.isPaid},\"Local Storage\"\n"
+                )
             }
 
-            outputStream.close()
-
-            // Trigger Share Intent (Download)
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
+            saveBytesToDownloads(
+                context = context,
+                fileName = fileName,
+                mimeType = "text/csv",
+                bytes = csvBuilder.toString().toByteArray(Charsets.UTF_8)
             )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
-                putExtra(Intent.EXTRA_SUBJECT, "BillTrack Data Export")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            context.startActivity(Intent.createChooser(intent, "Download/Share Bill Data"))
-
+            Result.success("Saved $fileName to Downloads")
         } catch (e: Exception) {
-            e.printStackTrace()
+            Result.failure(e)
         }
     }
 
     /**
-     * Copies the installed application APK file and triggers a share/download intent.
+     * Exports a structured JSON backup of cloud and local bills directly to Downloads.
      */
-    fun exportAppApkFile(context: Context) {
-        try {
-            val sourceApk = File(context.applicationInfo.sourceDir)
-            val destinationApk = File(context.cacheDir, "BillTrack_v1.2.0_App.apk")
-
-            sourceApk.inputStream().use { input ->
-                FileOutputStream(destinationApk).use { output ->
-                    input.copyTo(output)
-                }
+    fun exportAppBackupBundle(
+        context: Context,
+        bills: List<Bill> = emptyList(),
+        localBills: List<LocalBillEntity> = emptyList()
+    ): Result<String> {
+        return try {
+            val fileName = "BillTrack_Backup_${System.currentTimeMillis()}.json"
+            val jsonContent = buildString {
+                append("{\n")
+                append("  \"app_name\": \"BillTrack\",\n")
+                append("  \"version\": \"1.2.0\",\n")
+                append("  \"cloud_bills_count\": ${bills.size},\n")
+                append("  \"local_bills_count\": ${localBills.size},\n")
+                append("  \"exported_at_ms\": ${System.currentTimeMillis()}\n")
+                append("}\n")
             }
 
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                destinationApk
+            saveBytesToDownloads(
+                context = context,
+                fileName = fileName,
+                mimeType = "application/json",
+                bytes = jsonContent.toByteArray(Charsets.UTF_8)
             )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/vnd.android.package-archive"
-                putExtra(Intent.EXTRA_SUBJECT, "BillTrack App Installer (APK)")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            context.startActivity(Intent.createChooser(intent, "Download / Save App APK File"))
+            Result.success("Saved $fileName to Downloads")
         } catch (e: Exception) {
-            e.printStackTrace()
-            // Fallback: export JSON backup
-            exportAppBackupBundle(context)
+            Result.failure(e)
         }
     }
 
-    /**
-     * Backup helper for exporting application configuration and details as a downloadable JSON file.
-     */
-    fun exportAppBackupBundle(context: Context) {
+    fun openPlayStoreListing(context: Context) {
+        val packageName = context.packageName
+        val marketIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("market://details?id=$packageName")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val webIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         try {
-            val fileName = "BillTrack_App_Backup.json"
-            val file = File(context.cacheDir, fileName)
-            val jsonContent = """
-                {
-                  "app_name": "BillTrack",
-                  "version": "1.2.0",
-                  "build": 76,
-                  "tagline": "Everything in the app is visible and under the cover",
-                  "timestamp": ${System.currentTimeMillis()}
-                }
-            """.trimIndent()
-            file.writeText(jsonContent)
+            context.startActivity(marketIntent)
+        } catch (_: Exception) {
+            context.startActivity(webIntent)
+        }
+    }
 
-            val uri: Uri = FileProvider.getUriForFile(
+    fun shareAppPlayStoreLink(context: Context) {
+        val playUrl = "https://play.google.com/store/apps/details?id=${context.packageName}"
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "BillTrack")
+            putExtra(Intent.EXTRA_TEXT, "Track your bills and payment deadlines with BillTrack: $playUrl")
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share BillTrack"))
+    }
+
+    private fun saveBytesToDownloads(
+        context: Context,
+        fileName: String,
+        mimeType: String,
+        bytes: ByteArray
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                ?: error("Unable to create file in Downloads")
+            resolver.openOutputStream(uri)?.use { output ->
+                output.write(bytes)
+            } ?: error("Unable to open output stream for $fileName")
+
+            contentValues.clear()
+            contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, contentValues, null, null)
+        } else {
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: context.filesDir
+            if (!dir.exists()) dir.mkdirs()
+            val file = File(dir, fileName)
+            file.writeBytes(bytes)
+
+            val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
                 file
             )
-
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/json"
-                putExtra(Intent.EXTRA_SUBJECT, "BillTrack App Backup File")
+                type = mimeType
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-
-            context.startActivity(Intent.createChooser(intent, "Download App File"))
-        } catch (e: Exception) {
-            e.printStackTrace()
+            context.startActivity(Intent.createChooser(intent, "Save $fileName"))
         }
     }
 }

@@ -6,42 +6,46 @@ BillTrack is a modern Android application built with Kotlin and Jetpack Compose 
 
 ---
 
-## 📥 How to Download the App & Files
+## 🚀 Publishing & Downloading on GitHub
 
-### 1. Download Source Code as a ZIP File (from GitHub)
-1. Scroll to the top of this GitHub repository page.
-2. Click the green **`Code`** button.
-3. Select **`Download ZIP`**.
+### 1. Push Code from AI Studio to GitHub
+1. Open the **Settings / Menu** icon in the Google AI Studio editor.
+2. Select **Push to GitHub** and choose your repository.
 
-### 2. Download Pre-Built APK / Project from AI Studio
-1. Open your project panel in **Google AI Studio**.
-2. Click the **Settings / Menu** icon in the top right corner.
-3. Click **"Export Project as ZIP"** or **"Build & Download APK"**.
+### 2. Automatic APK Build on GitHub (Actions & Releases)
+This repository includes `.github/workflows/build-apk.yml`, which automatically builds an installable Android `.apk` whenever code is pushed to `main` or `master`:
+1. Open your repository on GitHub and click the **Actions** tab.
+2. Open the latest **Build Android APK** run.
+3. Download **`BillTrack-APK`** from the **Artifacts** section.
+4. *(Optional)* To publish a public download link on the **Releases** page, create a version tag (e.g., `v1.2.0`) on GitHub and `app-debug.apk` will be attached automatically.
 
-### 3. Download Files Directly Inside the App
-When running the app on your phone or emulator:
-1. Open the **BillTrack** app.
-2. Navigate to the **Settings** tab.
-3. Under **In-App File & App Download Center**, tap:
-   - **Download App (APK)**: Downloads/shares the installer package (`BillTrack_v1.2.0_App.apk`).
-   - **Download Data (CSV)**: Exports all your bills as a CSV document file.
+### 3. Download Source Code or APK from AI Studio
+* In Google AI Studio, open the **Settings / Menu** icon and select **"Export Project as ZIP"** or **"Generate APK / AAB"**.
 
 ---
 
-## ⚙️ How to Build the APK File Locally
+## 📥 In-App File Download Center
+Inside the **BillTrack** app under the **Settings** tab:
+* **Download CSV**: Saves all cloud and local bill records directly to your device `Downloads` folder.
+* **Backup JSON**: Saves a JSON backup summary directly to your device `Downloads` folder.
+* **Open on Google Play Store**: Opens the app's Play Store listing.
 
-If you cloned or downloaded this repository, you can build the APK file using Gradle:
+---
+
+## ⚙️ Build Locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/sfry06361-dot/your-repo.git
-cd your-repo
+# Decode debug keystore (if not present)
+base64 -d debug.keystore.base64 > debug.keystore
 
 # Build the Debug APK
 gradle assembleDebug
+
+# Or build the Google Play App Bundle (AAB)
+gradle bundleRelease
 ```
 
-After compilation, the APK file will be located at:
+The generated Debug APK is located at:
 `app/build/outputs/apk/debug/app-debug.apk`
 
 ---
@@ -50,23 +54,13 @@ After compilation, the APK file will be located at:
 
 * 📅 **Interactive Calendar View:** Monthly view with color-coded due date indicators.
 * 🔔 **Customizable Payment Reminders:** Set notifications 1, 3, 5, or 7 days in advance.
-* 🌐 **10 App Languages:** Including English, Arabic (Arpic), Spanish, French, German, Hindi, Chinese, Portuguese, Japanese, and Russian.
+* 🌐 **10 App Languages:** Including English, Arabic, Spanish, French, German, Hindi, Chinese, Portuguese, Japanese, and Russian.
 * 💱 **Multi-Currency Support:** USD ($), EUR (€), GBP (£), JPY (¥), AED, SAR, EGP.
 * 💾 **Dual Storage Architecture:**
   * **Cloud Sync:** Firebase Cloud Firestore + Google Sign-In.
   * **Local Storage:** On-device SQLite Room database for Guest mode.
 * 👤 **Flexible Auth:** Google Sign-In and instant Guest mode access.
-* 📊 **Financial Tools:** Debt payoff calculator, bill splitter, biometric security, and CSV file exporter.
-
----
-
-## 🛠 Tech Stack
-
-* **Language:** Kotlin
-* **UI:** Jetpack Compose (Material 3)
-* **Architecture:** MVVM + StateFlow + Clean Architecture
-* **Database:** Firebase Cloud Firestore & Android Room SQLite
-* **Authentication:** Google Identity Services (Credential Manager)
+* 📊 **Financial Tools:** Debt payoff calculator, bill splitter, biometric security, and direct Downloads CSV/JSON export.
 
 ---
 
